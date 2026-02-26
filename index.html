@@ -7,8 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Focus">
 <meta name="theme-color" content="#0a0a0a">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
 <title>Focus — Journal Quotidien</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
@@ -717,6 +715,398 @@
   .t-btn.primary:active { background: #b8e83f; }
   .t-btn.running { background: rgba(255,92,92,0.15); border-color: #ff5c5c; color: #ff5c5c; }
   .t-btn:not(.primary):active { background: var(--surface2); }
+
+  /* ===================== PLANNER ===================== */
+
+  /* Step indicator */
+  .planner-steps-bar {
+    display: flex;
+    align-items: center;
+    padding: 0 20px 16px;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .ps-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.25s;
+    cursor: pointer;
+  }
+  .ps-dot.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .ps-dot.done { background: var(--accent); border-color: var(--accent); color: #000; }
+  .ps-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .ps-line.done { background: var(--accent); }
+
+  /* Step panels */
+  .planner-body {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .plan-step {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 20px calc(90px + var(--safe-bottom));
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(30px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .plan-step.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(0);
+  }
+  .plan-step.exit-left {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  /* Step header */
+  .step-header {
+    margin-bottom: 20px;
+  }
+  .step-num {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+  }
+  .step-desc {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.6;
+  }
+
+  /* Goal rows */
+  .goal-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  .goal-row:focus-within { border-color: rgba(200,255,71,0.3); }
+
+  .goal-row-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .goal-num-badge {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    width: 16px;
+    flex-shrink: 0;
+  }
+  .goal-text-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .goal-text-input::placeholder { color: var(--muted); }
+
+  .goal-time-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-left: 26px;
+  }
+  .time-chip {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .time-chip.selected { background: var(--accent-dim); border-color: rgba(200,255,71,0.4); color: var(--accent); }
+  .time-chip:active { transform: scale(0.95); }
+
+  /* Available time */
+  .avail-display {
+    text-align: center;
+    padding: 24px 0 8px;
+  }
+  .avail-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .avail-unit { font-size: 14px; color: var(--muted2); margin-top: 4px; }
+
+  .avail-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .step-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .step-btn:active { background: var(--surface2); border-color: var(--accent); }
+
+  /* Calculation result */
+  .calc-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .calc-row:last-child { border-bottom: none; }
+  .calc-row-label { color: var(--muted2); }
+  .calc-row-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .calc-row-val.ok { color: var(--accent); }
+  .calc-row-val.warn { color: #ff5c5c; }
+
+  .alert-box {
+    background: rgba(255,92,92,0.08);
+    border: 1px solid rgba(255,92,92,0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #ff9a9a;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .ok-box {
+    background: var(--accent-dim);
+    border: 1px solid rgba(200,255,71,0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  /* Goal with toggle for save-for-later */
+  .goal-toggle-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+  }
+  .goal-toggle-row.deferred {
+    opacity: 0.4;
+    border-style: dashed;
+  }
+  .goal-toggle-info { flex: 1; }
+  .goal-toggle-name { font-size: 13px; font-weight: 500; }
+  .goal-toggle-time { font-size: 11px; color: var(--muted2); margin-top: 2px; }
+
+  .toggle-switch {
+    width: 40px; height: 22px;
+    border-radius: 11px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.on::after { transform: translateX(18px); background: #000; }
+
+  /* Micro-tasks */
+  .microtask-group {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+  .microtask-goal-name {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .microtask-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .microtask-input-row:last-child { border-bottom: none; }
+  .micro-bullet {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .micro-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .micro-input::placeholder { color: var(--muted); }
+
+  /* Reward */
+  .reward-area {
+    background: var(--surface);
+    border: 1px solid rgba(200,255,71,0.2);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .reward-emoji { font-size: 40px; margin-bottom: 12px; }
+  .reward-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .reward-input:focus { border-color: var(--accent); }
+  .reward-input::placeholder { color: var(--muted); }
+
+  /* Summary */
+  .summary-reward-banner {
+    background: var(--accent-dim);
+    border: 1px solid rgba(200,255,71,0.3);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .summary-reward-text { font-size: 14px; font-weight: 500; color: var(--accent); }
+  .summary-reward-label { font-size: 10px; color: var(--muted2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+
+  .summary-goal-item {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .summary-goal-name { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  .summary-microtask {
+    font-size: 12px;
+    color: var(--muted2);
+    padding: 3px 0;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .summary-microtask::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+
+  /* Nav button — planner */
+  .planner-nav {
+    display: flex;
+    gap: 10px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .pnav-btn {
+    flex: 1;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pnav-btn.next { background: var(--accent); color: #000; border-color: var(--accent); flex: 2; }
+  .pnav-btn.next:active { background: #b8e83f; }
+  .pnav-btn:not(.next):active { background: var(--surface2); }
+  .pnav-btn:disabled { opacity: 0.3; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -751,6 +1141,15 @@
         <div class="score-info">
           <div class="score-title">Score du jour</div>
           <div class="score-sub" id="score-message">Commencez votre journée !</div>
+        </div>
+      </div>
+
+      <!-- Reward banner (shown if planner reward set) -->
+      <div id="reward-banner" style="display:none;background:var(--accent-dim);border:1px solid rgba(200,255,71,0.25);border-radius:10px;padding:12px 16px;margin-top:12px;display:none;align-items:center;gap:10px;">
+        <div style="font-size:22px;">🏆</div>
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);font-family:'Syne',sans-serif;margin-bottom:2px;">Ma récompense du jour</div>
+          <div style="font-size:13px;color:var(--accent);font-weight:500;" id="reward-banner-text"></div>
         </div>
       </div>
 
@@ -933,11 +1332,120 @@
     </div>
   </div>
 
+  <!-- =================== VIEW: PLANNER =================== -->
+  <div class="view" id="view-planner">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Planner</div>
+        <div class="topbar-date" id="planner-date-label"></div>
+      </div>
+      <button style="background:transparent;border:none;color:var(--muted2);font-size:12px;cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:1px;" onclick="resetPlanner()">Réinitialiser</button>
+    </div>
+
+    <!-- Step dots -->
+    <div class="planner-steps-bar" id="planner-steps-bar"></div>
+
+    <!-- Step panels -->
+    <div class="planner-body">
+
+      <!-- STEP 1: Goals + temps estimé -->
+      <div class="plan-step active" id="pstep-0">
+        <div class="step-header">
+          <div class="step-num">Étape 1 / 6</div>
+          <div class="step-title">Quels sont vos objectifs du jour ?</div>
+          <div class="step-desc">Listez jusqu'à 5 goals et estimez le temps de chacun. Soyez optimiste — on ajustera après.</div>
+        </div>
+        <div id="goal-rows-list"></div>
+      </div>
+
+      <!-- STEP 2: Temps disponible -->
+      <div class="plan-step" id="pstep-1">
+        <div class="step-header">
+          <div class="step-num">Étape 2 / 6</div>
+          <div class="step-title">Combien de temps avez-vous vraiment ?</div>
+          <div class="step-desc">Temps total disponible aujourd'hui, en heures. Soyez réaliste — repas, déplacements, imprévus inclus.</div>
+        </div>
+        <div class="avail-display">
+          <div class="avail-num" id="avail-num">4</div>
+          <div class="avail-unit">heures disponibles</div>
+        </div>
+        <div class="avail-stepper">
+          <button class="step-btn" onclick="changeAvail(-0.5)">−</button>
+          <div style="font-size:13px;color:var(--muted2);">par paliers de 30 min</div>
+          <button class="step-btn" onclick="changeAvail(0.5)">+</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Calcul réaliste x2 -->
+      <div class="plan-step" id="pstep-2">
+        <div class="step-header">
+          <div class="step-num">Étape 3 / 6</div>
+          <div class="step-title">Le temps réaliste</div>
+          <div class="step-desc">Le cerveau ADHD sous-estime systématiquement. On multiplie chaque estimation par 2 — c'est la règle.</div>
+        </div>
+        <div class="calc-card" id="calc-breakdown"></div>
+        <div id="calc-verdict"></div>
+      </div>
+
+      <!-- STEP 4: Save for later -->
+      <div class="plan-step" id="pstep-3">
+        <div class="step-header">
+          <div class="step-num">Étape 4 / 6</div>
+          <div class="step-title">Ajustez votre liste</div>
+          <div class="step-desc">Désactivez les goals à reporter. L'objectif : que votre temps réaliste ≤ temps disponible.</div>
+        </div>
+        <div id="balance-info" style="margin-bottom:12px;"></div>
+        <div id="goal-toggle-list"></div>
+        <div id="save-later-list" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- STEP 5: Micro-tâches -->
+      <div class="plan-step" id="pstep-4">
+        <div class="step-header">
+          <div class="step-num">Étape 5 / 6</div>
+          <div class="step-title">Découpez en micro-tâches</div>
+          <div class="step-desc">Pour chaque goal retenu, définissez 2-3 actions concrètes. Elles seront ajoutées à votre checklist.</div>
+        </div>
+        <div id="microtask-groups"></div>
+      </div>
+
+      <!-- STEP 6: Récompense -->
+      <div class="plan-step" id="pstep-5">
+        <div class="step-header">
+          <div class="step-num">Étape 6 / 6</div>
+          <div class="step-title">Votre récompense 🎁</div>
+          <div class="step-desc">Définissez ce que vous vous offrez si vous terminez vos goals. La dopamine a besoin d'une cible.</div>
+        </div>
+        <div class="reward-area">
+          <div class="reward-emoji">🏆</div>
+          <input class="reward-input" id="reward-input" placeholder="Ex : une série, une glace, une balade…" maxlength="100">
+        </div>
+        <div style="margin-top:20px;">
+          <div class="step-header">
+            <div class="step-title" style="font-size:18px;">Récapitulatif</div>
+          </div>
+          <div id="summary-content"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Planner nav buttons -->
+    <div class="planner-nav" id="planner-nav">
+      <button class="pnav-btn" id="pnav-back" onclick="plannerNav(-1)">← Retour</button>
+      <button class="pnav-btn next" id="pnav-next" onclick="plannerNav(1)">Suivant →</button>
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <button class="nav-btn active" id="nav-today" onclick="switchView('today')">
       <span class="nav-icon">☀️</span>
       <span class="nav-label">Aujourd'hui</span>
+    </button>
+    <button class="nav-btn" id="nav-planner" onclick="switchView('planner')">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Planner</span>
     </button>
     <button class="nav-btn" id="nav-calendar" onclick="switchView('calendar')">
       <span class="nav-icon">📅</span>
@@ -995,8 +1503,14 @@ function computeScore(data) {
   data.priorities.forEach((p, i) => {
     if (p.trim()) { total += 2; if (data.prioritiesDone[i]) done += 2; }
   });
-  // checks
+  // checklist
   CHECKLIST.forEach(c => { total++; if (data.checks[c.id]) done++; });
+  // planner tasks
+  if (data.plannerTasks) {
+    Object.values(data.plannerTasks).forEach(t => {
+      if (t.label) { total++; if (t.done) done++; }
+    });
+  }
   // note
   total++; if (data.note && data.note.trim().length > 5) done++;
   return total === 0 ? 0 : Math.round((done / total) * 100);
@@ -1058,11 +1572,406 @@ function togglePriority(idx) {
   showToast();
 }
 
-// ======================== CHECKLIST ========================
+// ======================== PLANNER ========================
+const MAX_GOALS = 5;
+const TIME_OPTIONS = [15, 30, 45, 60, 90, 120];
+
+let plannerStep = 0;
+let plannerData = {
+  goals: Array.from({length: MAX_GOALS}, () => ({ text: '', time: 0 })),
+  availableHours: 4,
+  deferred: Array(MAX_GOALS).fill(false),
+  microtasks: Array.from({length: MAX_GOALS}, () => ['', '', '']),
+  reward: ''
+};
+
+function getPlannerData() {
+  const store = getStorage();
+  const key = todayKey();
+  if (!store[key]) store[key] = {};
+  if (store[key].planner) plannerData = store[key].planner;
+  return plannerData;
+}
+
+function savePlannerData() {
+  const store = getStorage();
+  const key = todayKey();
+  if (!store[key]) store[key] = {};
+  store[key].planner = plannerData;
+  setStorage(store);
+}
+
+function initPlanner() {
+  getPlannerData();
+  renderStepDots();
+  renderGoalRows();
+  renderAvail();
+  document.getElementById('planner-date-label').textContent =
+    document.getElementById('today-date-label').textContent;
+  if (plannerData.reward) document.getElementById('reward-input').value = plannerData.reward;
+  document.getElementById('reward-input').addEventListener('input', e => {
+    plannerData.reward = e.target.value;
+    savePlannerData();
+  });
+  updatePlannerNav();
+}
+
+/* Step dots */
+function renderStepDots() {
+  const bar = document.getElementById('planner-steps-bar');
+  bar.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'ps-dot' + (i < plannerStep ? ' done' : i === plannerStep ? ' active' : '');
+    dot.textContent = i < plannerStep ? '✓' : i + 1;
+    dot.onclick = () => { if (i <= plannerStep) goToPlannerStep(i); };
+    bar.appendChild(dot);
+    if (i < 5) {
+      const line = document.createElement('div');
+      line.className = 'ps-line' + (i < plannerStep ? ' done' : '');
+      bar.appendChild(line);
+    }
+  }
+}
+
+/* Navigation */
+function plannerNav(dir) {
+  if (dir === 1) {
+    if (plannerStep === 4) commitMicrotasks();
+    if (plannerStep === 5) { finalizePlanner(); return; }
+  }
+  goToPlannerStep(plannerStep + dir);
+}
+
+function goToPlannerStep(target) {
+  if (target < 0 || target > 5) return;
+  const prev = document.getElementById('pstep-' + plannerStep);
+  prev.classList.remove('active');
+  prev.classList.add('exit-left');
+  setTimeout(() => prev.classList.remove('exit-left'), 300);
+
+  plannerStep = target;
+  const next = document.getElementById('pstep-' + plannerStep);
+  next.classList.add('active');
+
+  renderStepDots();
+  updatePlannerNav();
+
+  // Render step content
+  if (plannerStep === 2) renderCalcStep();
+  if (plannerStep === 3) renderToggleStep();
+  if (plannerStep === 4) renderMicrotaskStep();
+  if (plannerStep === 5) renderSummary();
+}
+
+function updatePlannerNav() {
+  document.getElementById('pnav-back').style.display = plannerStep === 0 ? 'none' : 'block';
+  const nextBtn = document.getElementById('pnav-next');
+  nextBtn.textContent = plannerStep === 5 ? '✓ Lancer ma journée !' : 'Suivant →';
+}
+
+/* STEP 1: Goal rows */
+function renderGoalRows() {
+  const list = document.getElementById('goal-rows-list');
+  list.innerHTML = '';
+  plannerData.goals.forEach((g, i) => {
+    const row = document.createElement('div');
+    row.className = 'goal-row';
+    row.innerHTML = `
+      <div class="goal-row-top">
+        <div class="goal-num-badge">${String(i+1).padStart(2,'0')}</div>
+        <input class="goal-text-input" placeholder="Objectif ${i+1}…" value="${g.text}" maxlength="80" data-gi="${i}">
+      </div>
+      <div class="goal-time-row" id="chips-${i}">
+        ${TIME_OPTIONS.map(t => `<button class="time-chip ${g.time===t?'selected':''}" onclick="selectTime(${i},${t},this)">${t>=60?t/60+'h':t+'min'}</button>`).join('')}
+      </div>`;
+    row.querySelector('input').addEventListener('input', e => {
+      plannerData.goals[i].text = e.target.value;
+      savePlannerData();
+    });
+    list.appendChild(row);
+  });
+}
+
+function selectTime(goalIdx, time, btn) {
+  plannerData.goals[goalIdx].time = time;
+  savePlannerData();
+  document.querySelectorAll(`#chips-${goalIdx} .time-chip`).forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+/* STEP 2: Available time */
+function renderAvail() {
+  document.getElementById('avail-num').textContent = plannerData.availableHours % 1 === 0
+    ? plannerData.availableHours
+    : plannerData.availableHours.toFixed(1);
+}
+
+function changeAvail(delta) {
+  plannerData.availableHours = Math.max(0.5, Math.min(16, plannerData.availableHours + delta));
+  savePlannerData();
+  renderAvail();
+}
+
+/* STEP 3: Calculation */
+function getActiveGoals() {
+  return plannerData.goals.filter((g, i) => g.text.trim() && g.time > 0 && !plannerData.deferred[i]);
+}
+
+function getTotalRealistic() {
+  return getActiveGoals().reduce((sum, g) => sum + g.time * 2, 0); // x2
+}
+
+function renderCalcStep() {
+  const goals = plannerData.goals.filter(g => g.text.trim() && g.time > 0);
+  const totalEstimated = goals.reduce((s, g) => s + g.time, 0);
+  const totalRealistic = totalEstimated * 2;
+  const availMins = plannerData.availableHours * 60;
+  const ok = totalRealistic <= availMins;
+
+  const fmtTime = m => m >= 60 ? `${(m/60).toFixed(1).replace('.0','')}h` : `${m}min`;
+
+  let html = goals.map(g => `
+    <div class="calc-row">
+      <span class="calc-row-label">${g.text}</span>
+      <span style="color:var(--muted2);font-size:12px;">${fmtTime(g.time)} × 2 = <strong style="color:var(--text)">${fmtTime(g.time*2)}</strong></span>
+    </div>`).join('');
+
+  html += `<div class="calc-row" style="margin-top:4px;">
+    <span class="calc-row-label">Temps disponible</span>
+    <span class="calc-row-val">${fmtTime(availMins)}</span>
+  </div>
+  <div class="calc-row">
+    <span class="calc-row-label">Temps réaliste total</span>
+    <span class="calc-row-val ${ok?'ok':'warn'}">${fmtTime(totalRealistic)}</span>
+  </div>`;
+
+  document.getElementById('calc-breakdown').innerHTML = html;
+  document.getElementById('calc-verdict').innerHTML = ok
+    ? `<div class="ok-box">✅ Votre planning est réaliste ! Vous pouvez garder tous vos goals. Passez à l'étape suivante.</div>`
+    : `<div class="alert-box">⚠️ Votre planning est trop chargé de <strong>${fmtTime(totalRealistic - availMins)}</strong>. À l'étape suivante, déplacez certains goals en "Save for Later".</div>`;
+}
+
+/* STEP 4: Toggle goals */
+function renderToggleStep() {
+  const availMins = plannerData.availableHours * 60;
+  const goals = plannerData.goals.filter(g => g.text.trim() && g.time > 0);
+  const fmtTime = m => m >= 60 ? `${(m/60).toFixed(1).replace('.0','')}h` : `${m}min`;
+
+  const activeGoals = plannerData.goals
+    .map((g, i) => ({ ...g, idx: i }))
+    .filter(g => g.text.trim() && g.time > 0);
+
+  let activeMins = activeGoals.filter(g => !plannerData.deferred[g.idx]).reduce((s, g) => s + g.time * 2, 0);
+  const ok = activeMins <= availMins;
+
+  document.getElementById('balance-info').innerHTML = ok
+    ? `<div class="ok-box">✅ Temps réaliste : ${fmtTime(activeMins)} ≤ ${fmtTime(availMins)} dispo. C'est bon !</div>`
+    : `<div class="alert-box">⚠️ Encore ${fmtTime(activeMins - availMins)} à libérer. Désactivez des goals ci-dessous.</div>`;
+
+  const mainList = document.getElementById('goal-toggle-list');
+  const laterList = document.getElementById('save-later-list');
+  mainList.innerHTML = '';
+
+  const active = activeGoals.filter(g => !plannerData.deferred[g.idx]);
+  const deferred = activeGoals.filter(g => plannerData.deferred[g.idx]);
+
+  if (active.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.style.marginBottom = '8px';
+    lbl.textContent = 'Goals du jour';
+    mainList.appendChild(lbl);
+    active.forEach(g => mainList.appendChild(makeToggleRow(g)));
+  }
+
+  laterList.innerHTML = '';
+  if (deferred.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.style.marginBottom = '8px';
+    lbl.textContent = 'Save for Later / Brain Dump';
+    laterList.appendChild(lbl);
+    deferred.forEach(g => laterList.appendChild(makeToggleRow(g)));
+  }
+}
+
+function makeToggleRow(g) {
+  const fmtTime = m => m >= 60 ? `${(m/60).toFixed(1).replace('.0','')}h` : `${m}min`;
+  const row = document.createElement('div');
+  const isDeferred = plannerData.deferred[g.idx];
+  row.className = 'goal-toggle-row' + (isDeferred ? ' deferred' : '');
+  row.innerHTML = `
+    <div class="goal-toggle-info">
+      <div class="goal-toggle-name">${g.text}</div>
+      <div class="goal-toggle-time">Estimé ${fmtTime(g.time)} → réaliste ${fmtTime(g.time*2)}</div>
+    </div>
+    <div class="toggle-switch ${isDeferred?'':'on'}" onclick="toggleDeferred(${g.idx})"></div>`;
+  return row;
+}
+
+function toggleDeferred(idx) {
+  plannerData.deferred[idx] = !plannerData.deferred[idx];
+  savePlannerData();
+  renderToggleStep();
+}
+
+/* STEP 5: Micro-tasks */
+function renderMicrotaskStep() {
+  const container = document.getElementById('microtask-groups');
+  container.innerHTML = '';
+  const activeGoals = plannerData.goals
+    .map((g, i) => ({ ...g, idx: i }))
+    .filter(g => g.text.trim() && g.time > 0 && !plannerData.deferred[g.idx]);
+
+  activeGoals.forEach(g => {
+    const grp = document.createElement('div');
+    grp.className = 'microtask-group';
+    const tasks = plannerData.microtasks[g.idx];
+    grp.innerHTML = `<div class="microtask-goal-name">${g.text}</div>` +
+      [0,1,2].map(j => `
+        <div class="microtask-input-row">
+          <div class="micro-bullet"></div>
+          <input class="micro-input" placeholder="Micro-tâche ${j+1}…" value="${tasks[j]||''}" data-gi="${g.idx}" data-ti="${j}" maxlength="80">
+        </div>`).join('');
+
+    grp.querySelectorAll('.micro-input').forEach(inp => {
+      inp.addEventListener('input', e => {
+        plannerData.microtasks[+e.target.dataset.gi][+e.target.dataset.ti] = e.target.value;
+        savePlannerData();
+      });
+    });
+    container.appendChild(grp);
+  });
+}
+
+function commitMicrotasks() {
+  // Push micro-tasks into today's checklist
+  const data = getTodayData();
+  if (!data.plannerTasks) data.plannerTasks = {};
+
+  const activeGoals = plannerData.goals
+    .map((g, i) => ({ ...g, idx: i }))
+    .filter(g => g.text.trim() && g.time > 0 && !plannerData.deferred[g.idx]);
+
+  activeGoals.forEach(g => {
+    plannerData.microtasks[g.idx].forEach((t, j) => {
+      if (t.trim()) {
+        const id = `pt-${g.idx}-${j}`;
+        data.plannerTasks[id] = { label: t, done: data.plannerTasks[id]?.done || false };
+      }
+    });
+  });
+
+  data.reward = plannerData.reward;
+  saveTodayData(data);
+  renderChecklist();
+}
+
+/* STEP 6: Summary */
+function renderSummary() {
+  const activeGoals = plannerData.goals
+    .map((g, i) => ({ ...g, idx: i }))
+    .filter(g => g.text.trim() && g.time > 0 && !plannerData.deferred[g.idx]);
+
+  let html = '';
+  if (plannerData.reward) {
+    html += `<div class="summary-reward-banner">
+      <div style="font-size:28px;">🏆</div>
+      <div><div class="summary-reward-label">Ma récompense</div>
+      <div class="summary-reward-text">${plannerData.reward}</div></div>
+    </div>`;
+  }
+
+  activeGoals.forEach(g => {
+    const tasks = plannerData.microtasks[g.idx].filter(t => t.trim());
+    html += `<div class="summary-goal-item">
+      <div class="summary-goal-name">${g.text}</div>
+      ${tasks.map(t => `<div class="summary-microtask">${t}</div>`).join('')}
+    </div>`;
+  });
+
+  const deferred = plannerData.goals.filter((g, i) => g.text.trim() && plannerData.deferred[i]);
+  if (deferred.length) {
+    html += `<div class="section-label" style="margin-top:16px;margin-bottom:8px;">Save for Later</div>`;
+    deferred.forEach(g => {
+      html += `<div style="font-size:13px;color:var(--muted2);padding:6px 0;border-bottom:1px solid var(--border);">${g.text}</div>`;
+    });
+  }
+
+  document.getElementById('summary-content').innerHTML = html;
+}
+
+/* Finalize: go to Today view */
+function finalizePlanner() {
+  commitMicrotasks();
+  showToast();
+  switchView('today');
+  // Scroll to checklist
+  setTimeout(() => {
+    const checklist = document.getElementById('check-list');
+    if (checklist) checklist.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 400);
+}
+
+function resetPlanner() {
+  if (!confirm('Réinitialiser le Planner du jour ?')) return;
+  plannerData = {
+    goals: Array.from({length: MAX_GOALS}, () => ({ text: '', time: 0 })),
+    availableHours: 4,
+    deferred: Array(MAX_GOALS).fill(false),
+    microtasks: Array.from({length: MAX_GOALS}, () => ['', '', '']),
+    reward: ''
+  };
+  savePlannerData();
+  plannerStep = 0;
+  document.querySelectorAll('.plan-step').forEach((s, i) => {
+    s.classList.toggle('active', i === 0);
+  });
+  renderStepDots();
+  renderGoalRows();
+  renderAvail();
+  document.getElementById('reward-input').value = '';
+  updatePlannerNav();
+}
+
+// ======================== CHECKLIST (updated to include planner tasks) ========================
 function renderChecklist() {
   const data = getTodayData();
   const list = document.getElementById('check-list');
   list.innerHTML = '';
+
+  // Planner micro-tasks first (if any)
+  if (data.plannerTasks && Object.keys(data.plannerTasks).length > 0) {
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-family:"Syne",sans-serif;font-weight:700;margin-bottom:8px;padding:0 2px;';
+    lbl.textContent = 'Micro-tâches du Planner';
+    list.appendChild(lbl);
+
+    Object.entries(data.plannerTasks).forEach(([id, task]) => {
+      if (!task.label) return;
+      const el = document.createElement('div');
+      el.className = 'check-item' + (task.done ? ' done' : '');
+      el.innerHTML = `
+        <div class="checkbox">${task.done ? '✓' : ''}</div>
+        <div><div class="check-label">${task.label}</div></div>`;
+      el.onclick = () => {
+        const d = getTodayData();
+        if (!d.plannerTasks) d.plannerTasks = {};
+        d.plannerTasks[id] = { ...task, done: !task.done };
+        saveTodayData(d);
+        renderChecklist();
+        showToast();
+      };
+      list.appendChild(el);
+    });
+
+    const sep = document.createElement('div');
+    sep.style.cssText = 'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:"Syne",sans-serif;font-weight:700;margin:14px 0 8px;padding:0 2px;';
+    sep.textContent = 'Routine Anti-Procrastination';
+    list.appendChild(sep);
+  }
+
   CHECKLIST.forEach(c => {
     const done = !!data.checks[c.id];
     const el = document.createElement('div');
@@ -1111,6 +2020,7 @@ function switchView(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-' + name).classList.add('active');
   if (name === 'calendar') renderCalendar();
+  if (name === 'planner') initPlanner();
 }
 
 // ======================== CALENDAR ========================
@@ -1363,17 +2273,19 @@ function init() {
   updateScore();
   updateStreak();
 
+  // Reward banner
+  const todayData2 = getTodayData();
+  if (todayData2.reward) {
+    const banner = document.getElementById('reward-banner');
+    banner.style.display = 'flex';
+    document.getElementById('reward-banner-text').textContent = todayData2.reward;
+  }
+
   // Calendar init
   initCal();
 }
 
 init();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
-}
 </script>
 </body>
 </html>
